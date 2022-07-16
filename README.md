@@ -2,13 +2,7 @@ ansible_role_postgresql
 =========
 
 
-This ansible role setup gitea server all in one with postgres databasea and haproxy as a reverse proxy for gitea
-
-See defaults/main.yml for variables .
-
-Postgres tuning is set to use 1G ram. 
-
-
+This ansible deploys postgres database for redhat based distro or debian based.
 
 ---
 
