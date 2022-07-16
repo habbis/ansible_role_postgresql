@@ -38,3 +38,12 @@
     user: postgres
     job: "/usr/local/postgres_backup.sh > /dev/null"
     state: present
+
+- name: copy ssl cert
+  ansible.builtin.copy:
+    src: files/snakeoil.pem
+    dest: /etc/ssl/snakeoil.pem
+    owner: root
+    group: root
+    mode: '0644'
+  when: copy_ssl
