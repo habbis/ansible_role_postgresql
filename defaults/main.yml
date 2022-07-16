@@ -1,0 +1,37 @@
+---
+# postgres variables
+
+postgres_database: yourdatabase
+postgres_user: youruser
+postgres_user_password: mysupersecretword
+# set hostname of postgres host if multinode deploy
+ip_address: 127.0.0.1
+netmask: 32
+# md5 ia default
+postgres_auth_method: md5
+# scram-sha-256 more secure
+#postgres_auth_method: scram-sha-256
+postgres_version: 13
+# set to true to use postgres repo for debian based distro
+postgres_repo: true
+# pq_hba.conf location debian 11
+#postgres_pq_hba_conf: /etc/postgresql/13/main/pg_hba.conf
+# postgres location debian 11 
+#postgres_conf: /etc/postgresql/13/main/postgresql.conf
+# postgres tuning 
+# https://pgtune.leopard.in.ua/
+max_connections: 300
+shared_buffers: 256MB
+effective_cache_size: 768MB
+maintenance_work_mem: 64MB
+checkpoint_completion_target: 0.9
+wal_buffers: 7864kB
+default_statistics_target: 100
+random_page_cost: 4
+effective_io_concurrency: 2
+work_mem: 436kB
+min_wal_size: 1GB
+max_wal_size: 4GB
+# copy snakeoil.pem if true
+copy_ssl: false
+ssl_cert: snakeoil

@@ -1,0 +1,84 @@
+---
+- name: check if postgres repo exist 
+  command: ls -al /etc/yum.repos.d/pgdg-redhat-all.repo
+  register: postgres_repo_exist
+  ignore_errors: True
+
+- name: install postgres repo
+  command: dnf install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-8-x86_64/pgdg-redhat-repo-latest.noarch.rpm
+  when: postgres_repo_exist is failed
+
+- name: disable local postgres repo
+  command: dnf -qy module disable postgresql
+  when: postgres_repo_exist is failed
+
+- name: Install postges server and python package
+  ansible.builtin.package:
+    name: 
+      - "postgresql{{ postgres_version }}-server"
+      - python3-psycopg2
+      - pigz
+    state: present
+
+- name: test if postgres db exsist unser datadir 
+  shell: "ls -al /var/lib/pgsql/{{ postgres_version }}/data/base/"
+  register: postgres_db_exist
+  ignore_errors: True
+
+- name: init postgres db
+  command: "/usr/pgsql-13/bin/postgresql-{{ postgres_version }}-setup initdb"
+  when: postgres_db_exist is failed
+
+- name: deploy postgres.conf with tuning
+  ansible.builtin.template:
+    src: templates/postgresql.conf_rhel.j2
+    dest: "/var/lib/pgsql/{{ postgres_version }}/data/postgresql.conf"
+    owner: postgres
+    group: postgres
+    mode: '0644'
+
+- name: deploy pg_hba.conf
+  ansible.builtin.template:
+    src: templates/pg_hba.conf_rhel.j2
+    dest: "/var/lib/pgsql/{{ postgres_version }}/data/pg_hba.conf"
+    owner: postgres
+    group: postgres
+    mode: '0644'
+
+- name: restart postgres servies so tuning can take effect
+  ansible.builtin.systemd:
+    name: "postgresql-{{ postgres_version }}"
+    enabled: yes
+    state: restarted
+  ignore_errors: True
+
+- name: Create postgres database wih encoding
+  community.postgresql.postgresql_db:
+    name: "{{ postgres_database }}"
+    encoding: UTF-8
+    lc_collate: en_US.UTF-8
+    lc_ctype: en_US.UTF-8
+    template: template0
+    state: present
+  become_user: postgres
+
+- name: create postgres user give access database
+  community.postgresql.postgresql_user:
+    db: "{{ postgres_database }}"
+    name: "{{ postgres_user }}"
+    password: "{{ postgres_user_password }}"
+    priv: ALL
+    expires: infinity
+    state: present
+  become_user: postgres
+
+- name: set postgres user access ip address and auth method
+  community.postgresql.postgresql_pg_hba:
+    dest: "/var/lib/pgsql/{{ postgres_version }}/data/pg_hba.conf"
+    contype: host
+    users: "{{ postgres_user }}"
+    source: "{{ ip_address }}/{{ netmask }}"
+    databases: "{{ postgres_database }}"
+    method: "{{ postgres_auth_method }}"
+    state: present
+  become_user: postgres

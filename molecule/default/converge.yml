@@ -1,0 +1,17 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  gather_facts: yes
+  #vars_files:
+  #  - ../../defaults/main.yml
+  #vars:
+
+
+  tasks:
+    #- name: "Include ansible_role_postgresql"
+    #  include_role:
+    #    name: "ansible_role_postgresql"
+
+  roles:
+    - role: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | basename }}"

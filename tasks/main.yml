@@ -1,0 +1,40 @@
+---
+- include_tasks: setup-RedHat_postgres.yml
+  when: ( ansible_os_family == 'RedHat' or ansible_pkg_mgr == "dnf" or ansible_pkg_mgr == "yum" )
+
+- include_tasks: setup-Debian_postgres.yml
+  when: (ansible_distribution == "Debian" or ansible_distribution == "Ubuntu")
+
+- name: deploy postgres backup script
+  ansible.builtin.template:
+    src: templates/postgres_backup.sh.j2
+    dest: /usr/local/postgres_backup.sh
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: create postgres backup dir
+  ansible.builtin.file:
+    path: /mnt/backup
+    owner: postgres
+    group: postgres
+    mode: '744'
+    state: directory
+
+- name: create postgres backup log
+  ansible.builtin.file:
+    path: /mnt/backup/postgres_backup_log
+    owner: postgres
+    group: postgres
+    mode: '744'
+    state: touch
+
+- name: add add postgres backup cronjob
+  ansible.builtin.cron:
+    name: "postgres_backup"
+    minute: "0"
+    hour: "20"
+    #day: "1"
+    user: postgres
+    job: "/usr/local/postgres_backup.sh > /dev/null"
+    state: present

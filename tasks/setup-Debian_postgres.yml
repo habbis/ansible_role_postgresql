@@ -1,0 +1,99 @@
+---
+- name: copy postgres key
+  ansible.builtin.copy:
+    src: files/debian/postgres_pgp_key_ACCC4CF8.asc
+    dest: /usr/share/keyrings/postgres-keyring.asc
+    owner: root
+    group: root
+    mode: '0644'
+  when: postgres_repo
+
+- name: deploy postgres repo
+  ansible.builtin.template:
+    src: templates/pgdg.list.j2
+    dest: /etc/apt/sources.list.d/pgdg.list
+    owner: root
+    group: root
+    mode: '0644'
+  when: postgres_repo
+
+- name: Update repositories 
+  ansible.builtin.apt:
+    update_cache: yes
+
+- name: Install postges server and python package
+  ansible.builtin.package:
+    name: 
+      - "postgresql-{{ postgres_version }}"
+      - python3-psycopg2
+      - pigz
+    state: present
+
+- name: deploy postgres.conf with tuning
+  ansible.builtin.template:
+    src: templates/postgresql.conf_debian.j2
+    dest: "/etc/postgresql/{{ postgres_version }}/main/postgresql.conf"
+    owner: postgres
+    group: postgres
+    mode: '0644'
+  when: postgres_repo
+
+- name: deploy pg_hba.conf
+  ansible.builtin.template:
+    src: templates/pg_hba.conf_debian.j2
+    dest: "/etc/postgresql/{{ postgres_version }}/main/pg_hba.conf"
+    owner: postgres
+    group: postgres
+    mode: '0640'
+  when: postgres_repo
+
+- name: restart postgres servies so tuning can take effect
+  ansible.builtin.systemd:
+    name: postgresql
+    enabled: yes
+    state: restarted
+  ignore_errors: True
+
+- name: Create postgres database wih encoding
+  community.postgresql.postgresql_db:
+    name: "{{ postgres_database }}"
+    encoding: UTF-8
+    lc_collate: en_US.UTF-8
+    lc_ctype: en_US.UTF-8
+    template: template1
+    state: present
+  become_user: postgres
+
+
+- name: set postgres user access ip address and auth method
+  community.postgresql.postgresql_pg_hba:
+    dest: "/etc/postgresql/{{ postgres_version }}/main/pg_hba.conf"
+    contype: host
+    users: "{{ postgres_user }}"
+    source: "{{ ip_address }}/{{ netmask }}"
+    databases: "{{ postgres_database }}"
+    method: "{{ postgres_auth_method }}"
+    state: present
+  become_user: postgres
+
+- name: create postgres user give access database
+  community.postgresql.postgresql_user:
+    db: "{{ postgres_database }}"
+    name: "{{ postgres_user }}"
+    password: "{{ postgres_user_password }}"
+    priv: ALL
+    expires: infinity
+    state: present
+  become_user: postgres
+
+- name: set postgres user access ip address and auth method
+  community.postgresql.postgresql_pg_hba:
+    dest: "/etc/postgresql/{{ postgres_version }}/main/pg_hba.conf"
+    contype: host
+    users: "{{ postgres_user }}"
+    source: "{{ ip_address }}/{{ netmask }}"
+    databases: "{{ postgres_database }}"
+    method: "{{ postgres_auth_method }}"
+    state: present
+  become_user: postgres
+
