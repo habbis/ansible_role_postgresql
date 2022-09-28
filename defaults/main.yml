@@ -4,7 +4,10 @@
 postgres_database: yourdatabase
 postgres_user: youruser
 postgres_user_password: mysupersecretword
-# set hostname of postgres host if multinode deploy
+# what IP address(es) postgres host to listen on
+# can also comma-separated list of addresses;
+listen_addresses: localhost
+# set ip address of allowed to connecto to postgres db host 
 ip_address: 127.0.0.1
 netmask: 32
 # md5 ia default
